@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_makroer.html" import lotboks, kildevalg %}
+{% block tittel %}Svinn{% endblock %}
+{% block innhold %}
+<h1>Svinnlogg</h1>
+<form method="get" class="kort skjema">
+  <input type="hidden" name="dato" value="{{ skjema.get('dato') or i_dag }}">
+  <label>Internt lotnr (skann)
+    <input name="lotnr" value="{{ skjema.get('lotnr', '') }}" {% if not info %}autofocus{% endif %} autocomplete="off" required></label>
+  <button>Hent lot</button>
+</form>
+{% if info %}
+{{ lotboks(info) }}
+{% if info.apne %}
+<form method="post" class="kort skjema">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="lotnr" value="{{ info.lot.lotnr }}">
+  <label>Dato <input type="date" name="dato" value="{{ skjema.get('dato') or i_dag }}" required></label>
+  {{ kildevalg(info.apne, skjema, tekst='Svinn i steget') }}
+  <div class="rad">
+    <label>Kg svinn <input name="kg" inputmode="decimal" required autofocus></label>
+    <label>Antall stk (valgfritt) <input name="stk" inputmode="numeric"></label>
+  </div>
+  <label>Årsak <input name="aarsak" list="aarsaker"></label>
+  <datalist id="aarsaker"><option>Skadet</option><option>Mugg</option><option>Feil salting</option><option>Mistet / falt ned</option><option>Kvalitetsavvik</option></datalist>
+  <label>Kommentar <input name="kommentar"></label>
+  <button class="stor" name="lagre" value="1">Lagre svinn</button>
+</form>
+{% else %}
+<p class="melding feil">Lotet har ingen åpen beholdning å trekke svinn fra.</p>
+{% endif %}
+{% endif %}
+{% endblock %}

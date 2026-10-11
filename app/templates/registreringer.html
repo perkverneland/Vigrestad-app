@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "_makroer.html" import hendelsetabell %}
+{% block tittel %}Registreringer{% endblock %}
+{% block innhold %}
+<h1>Registreringer</h1>
+<form class="filter">
+  <label>Fra <input type="date" name="fra" value="{{ fra }}"></label>
+  <label>Til <input type="date" name="til" value="{{ til }}"></label>
+  <button>Vis</button>
+  <a class="knapp" href="{{ url_for('app.registreringer', fra=fra, til=til, format='csv') }}">Last ned til Excel (CSV)</a>
+</form>
+{{ hendelsetabell(rader, kan_angre=true, tilbake=request.full_path) }}
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block tittel %}Logg inn{% endblock %}
+{% block innhold %}
+<div class="kort smal">
+  <h1>Vigrestad lot-sporing</h1>
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Brukernavn <input name="brukernavn" autofocus autocomplete="username" required></label>
+    <label>Passord <input name="passord" type="password" autocomplete="current-password" required></label>
+    <button class="stor">Logg inn</button>
+  </form>
+</div>
+{% endblock %}

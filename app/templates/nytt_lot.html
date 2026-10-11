@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block tittel %}Nytt lot{% endblock %}
+{% block innhold %}
+<h1>Nytt lot <small>(mottak av råvare)</small></h1>
+<form method="post" class="kort skjema">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Dato <input type="date" name="dato" value="{{ skjema.get('dato') or i_dag }}" required></label>
+  <label>Prima lotnr (skann strekkoden)
+    <input name="prima_lotnr" id="prima" data-skann value="{{ skjema.get('prima_lotnr', '') }}" autofocus autocomplete="off"></label>
+  <div id="gs1" class="gs1 hjelp"></div>
+  <label>Råvare
+    <select name="raavare_id" id="raavare"><option value="">–</option>
+      {% for r in raavarer %}<option value="{{ r.id }}" {% if skjema.get('raavare_id')|string == r.id|string %}selected{% endif %}>{{ r.navn }}</option>{% endfor %}
+    </select></label>
+  <label>Internt lotnr
+    <input name="lotnr" id="lotnr" data-skann value="{{ skjema.get('lotnr', '') }}" required autocomplete="off" placeholder="f.eks. {{ forslag }}"></label>
+  <p class="hjelp">Forslag: <a href="#" id="bruk-forslag">{{ forslag }}</a> (ukedag, uke, år, løpenr – legg til typesifrene til slutt hvis de mangler)</p>
+  <label>Produktspesifikasjon
+    <select name="spesifikasjon_id" required><option value="">–</option>
+      {% for s in spesifikasjoner %}<option value="{{ s.id }}" {% if skjema.get('spesifikasjon_id')|string == s.id|string %}selected{% endif %}>{{ s.navn }}</option>{% endfor %}
+    </select></label>
+  <label>Ferdigprodukt
+    <select name="produkt_id" required><option value="">–</option>
+      {% for p in produkter %}<option value="{{ p.id }}" {% if skjema.get('produkt_id')|string == p.id|string %}selected{% endif %}>{{ p.navn }}{% if p.varenr %} ({{ p.varenr }}){% endif %}</option>{% endfor %}
+    </select></label>
+  <div class="rad">
+    <label>Startvekt kg (Label kg) <input name="start_kg" id="start_kg" inputmode="decimal" value="{{ skjema.get('start_kg', '') }}" required></label>
+    <label>Antall stk (valgfritt) <input name="start_stk" inputmode="numeric" value="{{ skjema.get('start_stk', '') }}"></label>
+  </div>
+  <label>Kommentar <input name="kommentar" value="{{ skjema.get('kommentar', '') }}"></label>
+  <button class="stor">Registrer lot</button>
+</form>
+{% endblock %}
+{% block skript %}
+<script>
+  var prima = document.getElementById('prima'), boks = document.getElementById('gs1');
+  var startKg = document.getElementById('start_kg');
+  function visGs1() {
+    if (!prima.value) { boks.textContent = ''; return; }
+    fetch('{{ url_for("app.api_gs1") }}?kode=' + encodeURIComponent(prima.value))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.gtin) { boks.textContent = 'Ikke en GS1-kode – lagres som den er.'; return; }
+        var deler = ['GTIN ' + d.gtin];
+        if (d.netto_kg) deler.push('netto ' + String(d.netto_kg).replace('.', ',') + ' kg');
+        if (d.prod_dato) deler.push('produsert ' + d.prod_dato);
+        if (d.best_for) deler.push('best før ' + d.best_for);
+        if (d.batch) deler.push('batch ' + d.batch);
+        boks.textContent = deler.join(' · ');
+        if (d.netto_kg && !startKg.value) startKg.value = String(d.netto_kg).replace('.', ',');
+      });
+  }
+  prima.addEventListener('change', visGs1); visGs1();
+  var lotnr = document.getElementById('lotnr'), forslag = document.getElementById('bruk-forslag');
+  function hentForslag() {
+    var dato = document.querySelector('[name=dato]').value, rv = document.getElementById('raavare').value;
+    fetch('{{ url_for("app.api_lotnr_forslag") }}?dato=' + dato + '&raavare_id=' + rv)
+      .then(function (r) { return r.json(); }).then(function (d) { forslag.textContent = d.forslag; lotnr.placeholder = 'f.eks. ' + d.forslag; });
+  }
+  document.getElementById('raavare').addEventListener('change', hentForslag);
+  document.querySelector('[name=dato]').addEventListener('change', hentForslag);
+  forslag.addEventListener('click', function (e) { e.preventDefault(); lotnr.value = forslag.textContent; lotnr.focus(); });
+</script>
+{% endblock %}

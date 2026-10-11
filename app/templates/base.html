@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block tittel %}Lot-sporing{% endblock %} – Vigrestad</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='stil.css') }}">
+</head>
+<body>
+{% if g.bruker %}
+<nav class="meny">
+  <a class="logo" href="{{ url_for('app.hjem') }}">Vigrestad</a>
+  <a href="{{ url_for('app.nytt_lot') }}">Nytt lot</a>
+  <a href="{{ url_for('app.operasjon') }}">Operasjon</a>
+  <a href="{{ url_for('app.svinn') }}">Svinn</a>
+  <a href="{{ url_for('app.omlotting') }}">Omlotting</a>
+  <a href="{{ url_for('app.beholdning') }}">Beholdning</a>
+  <a href="{{ url_for('app.beholdning', vis='rester') }}">Åpne rester</a>
+  <a href="{{ url_for('app.lots') }}">Lot</a>
+  <a href="{{ url_for('app.registreringer') }}">Registreringer</a>
+  {% if g.bruker.rolle == 'admin' %}<a href="{{ url_for('app.stamdata_admin', tabell='operasjoner') }}">Admin</a>{% endif %}
+  <span class="bruker">
+    <a href="{{ url_for('app.bytt_passord') }}">{{ g.bruker.navn }}</a>
+    <form method="post" action="{{ url_for('app.logg_ut') }}" class="inline">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button class="lenke">Logg ut</button>
+    </form>
+  </span>
+</nav>
+{% endif %}
+<main>
+  {% for kategori, melding in get_flashed_messages(with_categories=true) %}
+    <div class="melding {{ kategori }}">{{ melding }}</div>
+  {% endfor %}
+  {% block innhold %}{% endblock %}
+</main>
+<script>
+  // Strekkodeskannere «trykker Enter» etter koden. I felt merket data-skann hopper vi da til neste felt
+  // i stedet for å sende skjemaet.
+  document.querySelectorAll('[data-skann]').forEach(function (felt) {
+    felt.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      felt.dispatchEvent(new Event('change'));
+      var alle = Array.from(felt.form.querySelectorAll('input:not([type=hidden]), select, textarea, button'));
+      var neste = alle[alle.indexOf(felt) + 1];
+      if (neste) neste.focus();
+    });
+  });
+  // Vis/skjul felt for delvis flytting
+  document.querySelectorAll('[data-viser]').forEach(function (boks) {
+    var mal = document.getElementById(boks.dataset.viser);
+    var oppdater = function () { mal.hidden = !boks.checked; };
+    boks.addEventListener('change', oppdater); oppdater();
+  });
+</script>
+{% block skript %}{% endblock %}
+</body>
+</html>

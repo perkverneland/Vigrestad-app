@@ -1,0 +1,4 @@
+<nav class="faner">
+  {% for navn, o in alle.items() %}<a href="{{ url_for('app.stamdata_admin', tabell=navn) }}" {% if navn == tabell %}class="aktiv"{% endif %}>{{ o.tittel }}</a>{% endfor %}
+  <a href="{{ url_for('app.brukere') }}" {% if not tabell %}class="aktiv"{% endif %}>Brukere</a>
+</nav>

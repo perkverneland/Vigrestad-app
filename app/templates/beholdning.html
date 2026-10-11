@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block tittel %}{{ 'Åpne rester' if kun_rester else 'Beholdning' }}{% endblock %}
+{% block innhold %}
+<h1>{{ 'Åpne restmengder' if kun_rester else 'Beholdning / telling' }}</h1>
+{% if kun_rester %}
+<p class="hjelp">Rester som ble liggende igjen i et tidligere steg ved delvis flytting. De telles med i beholdningen til de flyttes videre eller avsluttes.</p>
+{% else %}
+<p class="hjelp">Summen av siste steg for hvert lot, pluss åpne rester i tidligere steg.</p>
+{% endif %}
+<form class="filter">
+  {% if kun_rester %}<input type="hidden" name="vis" value="rester">{% endif %}
+  <select name="operasjon_id"><option value="">Alle steg</option>
+    {% for o in operasjoner %}<option value="{{ o.id }}" {% if request.args.get('operasjon_id')|string == o.id|string %}selected{% endif %}>{{ o.navn }}</option>{% endfor %}</select>
+  <select name="produkt_id"><option value="">Alle produkter</option>
+    {% for p in produkter %}<option value="{{ p.id }}" {% if request.args.get('produkt_id')|string == p.id|string %}selected{% endif %}>{{ p.navn }}</option>{% endfor %}</select>
+  <button>Vis</button>
+  <a class="knapp" href="{{ request.full_path }}{{ '&' if '?' in request.full_path else '?' }}format=csv">Last ned til Excel (CSV)</a>
+</form>
+
+{% if not kun_rester %}
+<div class="to-kol">
+  <div class="kort"><h2>Per steg</h2>
+    <table class="liten"><thead><tr><th>Steg</th><th class="tall">Lot</th><th class="tall">Kg</th><th class="tall">Herav rester</th></tr></thead><tbody>
+    {% for navn, s in sum_steg.items() %}<tr><td>{{ navn }}</td><td class="tall">{{ s.lot|length }}</td><td class="tall">{{ s.kg|kg }}</td><td class="tall">{{ s.rest_kg|kg if s.rest_kg }}</td></tr>{% endfor %}
+    <tr class="sum"><td>Sum</td><td></td><td class="tall">{{ rader|sum(attribute='kg')|kg }}</td><td></td></tr>
+    </tbody></table></div>
+  <div class="kort"><h2>Per ferdigprodukt</h2>
+    <table class="liten"><thead><tr><th>Produkt</th><th>Varenr</th><th class="tall">Kg</th></tr></thead><tbody>
+    {% for (navn, varenr), kg in sum_produkt.items()|sort %}<tr><td>{{ navn }}</td><td>{{ varenr }}</td><td class="tall">{{ kg|kg }}</td></tr>{% endfor %}
+    </tbody></table></div>
+</div>
+{% endif %}
+
+<h2>Lot ({{ rader|length }})</h2>
+<table>
+  <thead><tr><th>Lotnr</th><th>Steg</th><th>Produkt</th><th>Spes.</th><th class="tall">Kg</th><th class="tall">Stk</th><th>Inn i steget</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rader %}
+  <tr><td><a href="{{ url_for('app.lot', lotnr=r.lotnr) }}">{{ r.lotnr }}</a></td><td>{{ r.operasjon }}{% if r.er_rest %} <span class="merke">åpen rest</span>{% endif %}</td>
+    <td>{{ r.produkt or '' }}</td><td>{{ r.spesifikasjon or '' }}</td><td class="tall">{{ r.kg|kg }}</td><td class="tall">{{ r.stk or '' }}</td><td>{{ r.inn_dato|dato }}</td>
+    <td>{% if r.er_rest %}<details><summary>Avslutt</summary>
+      <form method="post" action="{{ url_for('app.avslutt', posisjon_id=r.id) }}" class="skjema">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="tilbake" value="{{ request.full_path }}">
+        <select name="aarsak">{% for k, v in aarsaker.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+        <input name="kommentar" placeholder="Kommentar"><button>Avslutt</button></form></details>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="8" class="svak">Ingenting her.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

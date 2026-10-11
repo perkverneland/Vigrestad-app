@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "_makroer.html" import hendelsetabell %}
+{% block tittel %}Lot {{ lot.lotnr }}{% endblock %}
+{% block innhold %}
+{% set l = detaljer %}
+<h1>Lot {{ l.lotnr }} {% if l.mangler_mottak %}<span class="merke advarsel">mangler mottak</span>{% endif %}</h1>
+<div class="to-kol">
+  <div class="kort">
+    <h2>Mottak</h2>
+    <dl>
+      <dt>Mottatt</dt><dd>{{ l.mottatt_dato|dato }}</dd>
+      <dt>Produkt</dt><dd>{{ l.produkt or '' }}{% if l.varenr %} ({{ l.varenr }}){% endif %}</dd>
+      <dt>Spesifikasjon</dt><dd>{{ l.spesifikasjon or '' }}</dd>
+      <dt>Råvare</dt><dd>{{ l.raavare or '' }}</dd>
+      <dt>Startvekt</dt><dd>{{ l.start_kg|kg }} kg{% if l.start_stk %} / {{ l.start_stk }} stk{% endif %}</dd>
+      <dt>Prima lotnr</dt><dd class="bryt">{{ l.prima_lotnr or '' }}</dd>
+      {% if gs1.gtin %}<dt>GS1</dt><dd>GTIN {{ gs1.gtin }}{% if gs1.netto_kg %} · netto {{ gs1.netto_kg|kg }} kg{% endif %}
+        {% if gs1.prod_dato %} · prod. {{ gs1.prod_dato|dato }}{% endif %}{% if gs1.best_for %} · best før {{ gs1.best_for|dato }}{% endif %}
+        {% if gs1.batch %} · batch {{ gs1.batch }}{% endif %}</dd>{% endif %}
+      {% if l.kommentar %}<dt>Kommentar</dt><dd>{{ l.kommentar }}</dd>{% endif %}
+      {% if l.bruker %}<dt>Registrert</dt><dd>{{ l.bruker }}, {{ l.registrert_tid|dato }}</dd>{% endif %}
+    </dl>
+  </div>
+  <div class="kort">
+    <h2>Beholdning nå</h2>
+    {% for p in apne %}
+      <div class="posisjon">
+        <b>{{ p.operasjon }}</b>: {{ p.kg|kg }} kg{% if p.stk %} / {{ p.stk }} stk{% endif %}
+        {% if not loop.first %}<span class="merke">åpen rest</span>{% endif %}
+        <details><summary>Avslutt</summary>
+          <form method="post" action="{{ url_for('app.avslutt', posisjon_id=p.id) }}" class="skjema">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <label>Dato <input type="date" name="dato" value="{{ i_dag }}"></label>
+            <label>Årsak <select name="aarsak">{% for k, v in aarsaker.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></label>
+            <label>Kommentar <input name="kommentar"></label>
+            <button onclick="return confirm('Avslutte {{ p.kg|kg }} kg i {{ p.operasjon }}?')">Avslutt denne beholdningen</button>
+          </form>
+        </details>
+      </div>
+    {% else %}
+      <p class="svak">Ingenting på lager (solgt, kassert eller ferdig).</p>
+    {% endfor %}
+    <p>
+      <a class="knapp" href="{{ url_for('app.operasjon', lotnr=l.lotnr) }}">Registrer operasjon</a>
+      <a class="knapp" href="{{ url_for('app.svinn', lotnr=l.lotnr) }}">Svinn</a>
+      <a class="knapp" href="{{ url_for('app.omlotting', fra_lotnr=l.lotnr) }}">Omlott</a>
+    </p>
+  </div>
+</div>
+
+<h2>Utbytte og letning per steg</h2>
+<table>
+  <thead><tr><th>Steg</th><th>Første dato</th><th class="tall">Kg</th><th class="tall">Stk</th><th class="tall">Utbytte av start</th>
+    <th class="tall">Utbytte i steget</th><th class="tall">Letning kg</th></tr></thead>
+  <tbody>
+  {% for s in steg %}
+    <tr><td>{{ s.operasjon }}{% if s.antall > 1 %} <span class="svak">({{ s.antall }} reg.)</span>{% endif %}</td><td>{{ s.forste_dato|dato }}</td>
+      <td class="tall">{{ s.kg|kg }}</td><td class="tall">{{ s.stk or '' }}</td><td class="tall">{{ s.utbytte_start|pst }}</td>
+      <td class="tall">{{ s.utbytte_steg|pst }}</td><td class="tall">{{ s.letning|kg }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% if bakover or fremover %}
+<h2>Sporing via omlotting</h2>
+<div class="to-kol">
+  <div class="kort"><h3>Bakover – kom fra</h3>
+    {% for niva, r in bakover %}<div style="margin-left: {{ niva * 1.5 }}em">← <a href="{{ url_for('app.lot', lotnr=r.lotnr) }}">{{ r.lotnr }}</a> {{ r.kg|kg }} kg, {{ r.dato|dato }}</div>
+    {% else %}<p class="svak">Ingen.</p>{% endfor %}</div>
+  <div class="kort"><h3>Fremover – gikk til</h3>
+    {% for niva, r in fremover %}<div style="margin-left: {{ niva * 1.5 }}em">→ <a href="{{ url_for('app.lot', lotnr=r.lotnr) }}">{{ r.lotnr }}</a> {{ r.kg|kg }} kg, {{ r.dato|dato }}</div>
+    {% else %}<p class="svak">Ingen.</p>{% endfor %}</div>
+</div>
+{% endif %}
+
+<h2>Full historikk</h2>
+{{ hendelsetabell(historikk, vis_lot=false, kan_angre=true, tilbake=request.path) }}
+{% endblock %}

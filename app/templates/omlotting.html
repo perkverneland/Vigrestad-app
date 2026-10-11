@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_makroer.html" import lotboks, kildevalg, delvis_felt %}
+{% block tittel %}Omlotting{% endblock %}
+{% block innhold %}
+<h1>Omlotting / korrigering</h1>
+<p class="hjelp">Flytter kg fra ett lot til et annet, og registrerer neste operasjon på til-lotet.</p>
+<form method="get" class="kort skjema">
+  <input type="hidden" name="dato" value="{{ skjema.get('dato') or i_dag }}">
+  <input type="hidden" name="til_lotnr" value="{{ skjema.get('til_lotnr', '') }}">
+  <input type="hidden" name="operasjon_id" value="{{ skjema.get('operasjon_id', '') }}">
+  <label>Fra internt lotnr (skann)
+    <input name="fra_lotnr" value="{{ skjema.get('fra_lotnr', '') }}" {% if not info %}autofocus{% endif %} autocomplete="off" required></label>
+  <button>Hent lot</button>
+</form>
+{% if info %}
+{{ lotboks(info) }}
+{% if info.apne %}
+<form method="post" class="kort skjema">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="fra_lotnr" value="{{ info.lot.lotnr }}">
+  <label>Dato <input type="date" name="dato" value="{{ skjema.get('dato') or i_dag }}" required></label>
+  {{ kildevalg(info.apne, skjema) if info.apne|length > 1 }}
+  <label>Til internt lotnr <input name="til_lotnr" data-skann value="{{ skjema.get('til_lotnr', '') }}" required autofocus autocomplete="off"></label>
+  <label class="avkryss"><input type="checkbox" name="opprett_til" value="1" {% if skjema.get('opprett_til') %}checked{% endif %}>
+    Opprett til-lotet hvis det ikke finnes (får samme produkt og spesifikasjon som fra-lotet)</label>
+  <label>Neste operasjon på til-lotet
+    <select name="operasjon_id" required><option value="">–</option>
+      {% for o in operasjoner %}<option value="{{ o.id }}" {% if skjema.get('operasjon_id')|string == o.id|string %}selected{% endif %}>{{ o.navn }}</option>{% endfor %}
+    </select></label>
+  <div class="rad">
+    <label>Kg <input name="kg" inputmode="decimal" required></label>
+    <label>Antall stk (valgfritt) <input name="stk" inputmode="numeric"></label>
+  </div>
+  {{ delvis_felt(skjema, info.apne) }}
+  <label>Kommentar <input name="kommentar"></label>
+  <button class="stor" name="lagre" value="1">Lagre omlotting</button>
+</form>
+{% else %}
+<p class="melding feil">Fra-lotet har ingen åpen beholdning å flytte fra.</p>
+{% endif %}
+{% endif %}
+{% endblock %}

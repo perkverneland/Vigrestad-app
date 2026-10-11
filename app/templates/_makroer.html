@@ -1,0 +1,84 @@
+{# Felles byggeklosser som brukes på flere skjermer #}
+
+{% macro lotboks(info) %}
+{% set l = info.detaljer %}
+<div class="kort lotboks">
+  <h2>Lot <a href="{{ url_for('app.lot', lotnr=l.lotnr) }}">{{ l.lotnr }}</a>
+    {% if l.mangler_mottak %}<span class="merke advarsel">mangler mottak</span>{% endif %}</h2>
+  <p>{{ l.produkt or 'Uten produkt' }}{% if l.spesifikasjon %} · {{ l.spesifikasjon }}{% endif %}
+     {% if l.start_kg %} · startvekt {{ l.start_kg|kg }} kg{% endif %}{% if l.mottatt_dato %} · mottatt {{ l.mottatt_dato|dato }}{% endif %}</p>
+  {% if info.steg %}
+  <table class="liten">
+    <thead><tr><th>Tidligere prosesser</th><th class="tall">Sum kg</th><th class="tall">Utbytte</th><th>Første dato</th></tr></thead>
+    <tbody>
+    {% for s in info.steg %}
+      <tr><td>{{ s.operasjon }}</td><td class="tall">{{ s.kg|kg }}</td><td class="tall">{{ s.utbytte_start|pst }}</td><td>{{ s.forste_dato|dato }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro kildevalg(apne, skjema, navn='kilde_posisjon_id', tekst='Flytt fra') %}
+{% if apne %}
+<fieldset>
+  <legend>{{ tekst }}</legend>
+  {% for p in apne %}
+  <label class="valg">
+    <input type="radio" name="{{ navn }}" value="{{ p.id }}"
+      {% if (skjema.get(navn) and skjema.get(navn)|int == p.id) or (not skjema.get(navn) and loop.first) %}checked{% endif %}>
+    {{ p.operasjon }}: <b>{{ p.kg|kg }} kg</b>{% if p.stk %} / {{ p.stk }} stk{% endif %}
+    {% if not loop.first %}<span class="merke">åpen rest</span>{% endif %}
+  </label>
+  {% endfor %}
+</fieldset>
+{% endif %}
+{% endmacro %}
+
+{% macro delvis_felt(skjema, apne) %}
+{% if apne %}
+<label class="avkryss"><input type="checkbox" name="delvis" value="1" data-viser="delvis-felt" {% if skjema.get('delvis') %}checked{% endif %}>
+  Delvis flytting – noe blir liggende igjen i forrige steg</label>
+<div id="delvis-felt" class="gruppe">
+  <p class="hjelp">Oppgi hvor mye som <b>blir igjen</b>. Fyll ut kg <i>eller</i> stk. Stk regnes om til kg ut fra snittvekten.</p>
+  <div class="rad">
+    <label>Rest igjen (kg) <input name="rest_kg" inputmode="decimal" value="{{ skjema.get('rest_kg', '') }}"></label>
+    <label>Rest igjen (stk) <input name="rest_stk" inputmode="numeric" value="{{ skjema.get('rest_stk', '') }}"></label>
+  </div>
+</div>
+<p class="hjelp">Uten avkryssing tømmes forrige steg, og forskjellen mellom kg før og etter blir bokført som letning.</p>
+{% endif %}
+{% endmacro %}
+
+{% macro hendelsetabell(rader, vis_lot=true, kan_angre=false, tilbake='') %}
+<table>
+  <thead><tr><th>Dato</th>{% if vis_lot %}<th>Lot</th>{% endif %}<th>Hva</th><th class="tall">Kg</th><th class="tall">Stk</th>
+    <th class="tall">Letning</th><th>Merknad</th><th>Av</th>{% if kan_angre %}<th></th>{% endif %}</tr></thead>
+  <tbody>
+  {% for h in rader %}
+  <tr class="type-{{ h.type }}">
+    <td>{{ h.dato|dato }}</td>
+    {% if vis_lot %}<td><a href="{{ url_for('app.lot', lotnr=h.lotnr) }}">{{ h.lotnr }}</a></td>{% endif %}
+    <td>
+      {% if h.type == 'svinn' %}Svinn i {{ h.operasjon }}
+      {% elif h.type == 'avslutt' %}Rest avsluttet i {{ h.operasjon }}
+      {% elif h.type == 'omlotting' %}{{ h.operasjon }} <span class="merke">omlottet {{ h.fra_lotnr }} → {{ h.lotnr }}</span>
+      {% else %}{{ h.operasjon }}{% endif %}
+    </td>
+    <td class="tall">{{ h.kg|kg }}</td>
+    <td class="tall">{{ h.stk if h.stk is not none else '' }}</td>
+    <td class="tall">{{ h.letning_kg|kg }}</td>
+    <td>{% if h.delvis %}<span class="merke">delvis, rest {{ h.rest_kg|kg }} kg</span> {% endif %}{{ h.aarsak or '' }} {{ h.kommentar or '' }}</td>
+    <td class="svak">{{ h.bruker or ('import' if h.kilde == 'import' else '') }}{% if h.registrert_tid and h.kilde == 'app' %}<br>{{ h.registrert_tid|dato }}{% endif %}</td>
+    {% if kan_angre %}<td>{% if h.kilde == 'app' and (g.bruker.rolle == 'admin' or h.registrert_av == g.bruker.id) %}
+      <form method="post" action="{{ url_for('app.angre', hendelse_id=h.id) }}" onsubmit="return confirm('Angre denne registreringen?')">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="tilbake" value="{{ tilbake }}">
+        <button class="lenke">Angre</button></form>{% endif %}</td>{% endif %}
+  </tr>
+  {% else %}
+  <tr><td colspan="9" class="svak">Ingen registreringer.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}

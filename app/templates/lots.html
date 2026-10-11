@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block tittel %}Lot{% endblock %}
+{% block innhold %}
+<h1>Lot</h1>
+<form class="sok"><input name="q" value="{{ q }}" placeholder="Søk på lotnr, Prima lotnr eller produkt" autofocus><button>Søk</button></form>
+<table>
+  <thead><tr><th>Lotnr</th><th>Mottatt</th><th>Produkt</th><th>Spesifikasjon</th><th class="tall">Startvekt</th><th>Siste steg</th><th class="tall">På lager kg</th></tr></thead>
+  <tbody>
+  {% for r in rader %}
+  <tr><td><a href="{{ url_for('app.lot', lotnr=r.lotnr) }}">{{ r.lotnr }}</a>{% if r.mangler_mottak %} <span class="merke advarsel">mangler mottak</span>{% endif %}</td>
+    <td>{{ r.mottatt_dato|dato }}</td><td>{{ r.produkt or '' }}</td><td>{{ r.spesifikasjon or '' }}</td>
+    <td class="tall">{{ r.start_kg|kg }}</td><td>{{ r.siste_steg or '' }}</td><td class="tall">{{ r.beholdning|kg }}</td></tr>
+  {% else %}<tr><td colspan="7" class="svak">Ingen treff.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

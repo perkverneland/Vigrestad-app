@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_makroer.html" import lotboks, kildevalg, delvis_felt %}
+{% block tittel %}Operasjon{% endblock %}
+{% block innhold %}
+<h1>Registrer operasjon</h1>
+{% if sist %}<p class="hjelp">Sist: {{ sist.lotnr }} – {{ sist.operasjon }} {{ sist.kg|kg }} kg{% if sist.letning_kg is not none %}, letning {{ sist.letning_kg|kg }} kg{% endif %}</p>{% endif %}
+<form method="get" class="kort skjema">
+  <input type="hidden" name="dato" value="{{ skjema.get('dato') or i_dag }}">
+  <input type="hidden" name="operasjon_id" value="{{ skjema.get('operasjon_id', '') }}">
+  <label>Internt lotnr (skann)
+    <input name="lotnr" value="{{ skjema.get('lotnr', '') }}" {% if not info %}autofocus{% endif %} autocomplete="off" required></label>
+  <button>Hent lot</button>
+</form>
+{% if info %}
+{{ lotboks(info) }}
+<form method="post" class="kort skjema">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="lotnr" value="{{ info.lot.lotnr }}">
+  <label>Dato <input type="date" name="dato" value="{{ skjema.get('dato') or i_dag }}" required></label>
+  <label>Operasjon
+    <select name="operasjon_id" required {% if not skjema.get('operasjon_id') %}autofocus{% endif %}><option value="">–</option>
+      {% for o in operasjoner %}<option value="{{ o.id }}" {% if skjema.get('operasjon_id')|string == o.id|string %}selected{% endif %}>{{ o.navn }}</option>{% endfor %}
+    </select></label>
+  <div class="rad">
+    <label>Kg <input name="kg" inputmode="decimal" value="{{ skjema.get('kg', '') if skjema.get('lagre') else '' }}" required {% if skjema.get('operasjon_id') %}autofocus{% endif %}></label>
+    <label>Antall stk (valgfritt) <input name="stk" inputmode="numeric" value="{{ skjema.get('stk', '') if skjema.get('lagre') else '' }}"></label>
+  </div>
+  {{ kildevalg(info.apne, skjema) if info.apne|length > 1 }}
+  {{ delvis_felt(skjema, info.apne) }}
+  <label>Kommentar <input name="kommentar" value="{{ skjema.get('kommentar', '') if skjema.get('lagre') else '' }}"></label>
+  <button class="stor" name="lagre" value="1">Lagre</button>
+</form>
+{% endif %}
+{% endblock %}

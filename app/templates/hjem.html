@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_makroer.html" import hendelsetabell %}
+{% block innhold %}
+<form action="{{ url_for('app.sok') }}" class="sok">
+  <input name="q" placeholder="Skann eller skriv lotnummer for å se historikk" autofocus>
+  <button>Søk</button>
+</form>
+<div class="knapper">
+  <a class="flis" href="{{ url_for('app.nytt_lot') }}"><b>Nytt lot</b><span>Mottak av råvare</span></a>
+  <a class="flis" href="{{ url_for('app.operasjon') }}"><b>Operasjon</b><span>Registrer neste steg</span></a>
+  <a class="flis" href="{{ url_for('app.svinn') }}"><b>Svinn</b><span>Registrer svinn</span></a>
+  <a class="flis" href="{{ url_for('app.omlotting') }}"><b>Omlotting</b><span>Flytt kg til annet lot</span></a>
+  <a class="flis" href="{{ url_for('app.beholdning') }}"><b>Beholdning</b><span>Telling og lageroversikt</span></a>
+  <a class="flis {% if antall_rester %}gul{% endif %}" href="{{ url_for('app.beholdning', vis='rester') }}"><b>Åpne rester</b><span>{{ antall_rester }} rester å følge opp</span></a>
+</div>
+<h2>Siste registreringer</h2>
+{{ hendelsetabell(siste) }}
+{% endblock %}

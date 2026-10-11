@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block tittel %}Brukere{% endblock %}
+{% block innhold %}
+{% include "_adminmeny.html" %}
+<h1>Brukere</h1>
+<p class="hjelp">Alle registreringer lagres med hvem som gjorde dem og når. Gi hver person sin egen bruker.</p>
+<table>
+  <thead><tr><th>Brukernavn</th><th>Navn</th><th>Rolle</th><th>Nytt passord</th><th>Aktiv</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rader %}{% set fid = 'b' ~ r.id %}
+  <tr>
+    <td>{{ r.brukernavn }}</td><td><input form="{{ fid }}" name="navn" value="{{ r.navn }}"></td>
+    <td><select form="{{ fid }}" name="rolle"><option value="operator" {% if r.rolle == 'operator' %}selected{% endif %}>Operatør</option><option value="admin" {% if r.rolle == 'admin' %}selected{% endif %}>Admin</option></select></td>
+    <td><input form="{{ fid }}" name="passord" type="password" placeholder="(uendret)" autocomplete="new-password"></td>
+    <td><input form="{{ fid }}" type="checkbox" name="aktiv" value="1" {% if r.aktiv %}checked{% endif %}></td>
+    <td><form id="{{ fid }}" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ r.id }}"><button>Lagre</button></form></td>
+  </tr>
+  {% endfor %}
+  <tr class="ny">
+    <td><input form="ny" name="brukernavn" placeholder="Nytt brukernavn"></td><td><input form="ny" name="navn" placeholder="Fullt navn"></td>
+    <td><select form="ny" name="rolle"><option value="operator">Operatør</option><option value="admin">Admin</option></select></td>
+    <td><input form="ny" name="passord" type="password" placeholder="Passord" autocomplete="new-password"></td><td></td>
+    <td><form id="ny" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Legg til</button></form></td>
+  </tr>
+  </tbody>
+</table>
+{% endblock %}
