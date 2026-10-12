@@ -126,6 +126,8 @@ def stamdata(db):
         "spesifikasjoner": db.execute("SELECT * FROM spesifikasjoner WHERE aktiv = 1 ORDER BY navn").fetchall(),
         "produkter": db.execute("SELECT * FROM produkter WHERE aktiv = 1 ORDER BY navn").fetchall(),
         "raavarer": db.execute("SELECT * FROM raavarer WHERE aktiv = 1 ORDER BY navn").fetchall(),
+        "lotkoder": db.execute("SELECT k.*, r.navn AS raavare FROM lotkoder k "
+                               "LEFT JOIN raavarer r ON r.id = k.raavare_id WHERE k.aktiv = 1 ORDER BY k.kode").fetchall(),
     }
 
 
@@ -205,18 +207,21 @@ def nytt_lot():
         lot_id, ok = lagre(lambda db: lager.opprett_lot(
             db, lotnr=skjema.get("lotnr"), dato=skjema.get("dato"), prima_lotnr=skjema.get("prima_lotnr"),
             spesifikasjon_id=skjema.get("spesifikasjon_id"), produkt_id=skjema.get("produkt_id"),
-            raavare_id=skjema.get("raavare_id"), start_kg=skjema.get("start_kg"), start_stk=skjema.get("start_stk"),
+            valgt_lotkode=skjema.get("lotkode"), start_kg=skjema.get("start_kg"), start_stk=skjema.get("start_stk"),
             kommentar=skjema.get("kommentar"), bruker_id=g.bruker["id"]),
             f"Lot {skjema.get('lotnr', '').strip()} er registrert.")
         if ok:
             # Behold dato, spesifikasjon og produkt så neste lot fra samme leveranse går fort
             return redirect(url_for("app.nytt_lot", dato=skjema.get("dato"),
                                     spesifikasjon_id=skjema.get("spesifikasjon_id"),
-                                    produkt_id=skjema.get("produkt_id"), raavare_id=skjema.get("raavare_id"),
+                                    produkt_id=skjema.get("produkt_id"), lotkode=skjema.get("lotkode"),
                                     prima_lotnr=skjema.get("prima_lotnr")))
     else:
         skjema = request.args
-    forslag = lager.foresla_lotnr(db, skjema.get("dato") or None)
+    try:
+        forslag = lager.foresla_lotnr(db, skjema.get("dato") or None, skjema.get("lotkode"))
+    except Feil:
+        forslag = lager.foresla_lotnr(db, None, skjema.get("lotkode"))
     return render_template("nytt_lot.html", skjema=skjema, forslag=forslag, **stamdata(db))
 
 
@@ -230,10 +235,10 @@ def api_gs1():
 @innlogget
 def api_lotnr_forslag():
     db = get_db()
-    raavare = db.execute("SELECT lotkode FROM raavarer WHERE id = ?", (request.args.get("raavare_id") or 0,)).fetchone()
+    kode = request.args.get("lotkode", "")
     try:
         return jsonify(forslag=lager.foresla_lotnr(db, request.args.get("dato") or None,
-                                                   raavare["lotkode"] if raavare else ""))
+                                                   kode if kode.isdigit() and len(kode) == 2 else ""))
     except Feil:
         return jsonify(forslag="")
 
@@ -463,8 +468,9 @@ STAMDATA = {
                     "sortering": "rekkefolge"},
     "produkter": {"tittel": "Ferdigprodukter", "felt": [("navn", "Navn"), ("varenr", "Varenr")], "sortering": "navn"},
     "spesifikasjoner": {"tittel": "Produktspesifikasjoner", "felt": [("navn", "Navn")], "sortering": "navn"},
-    "raavarer": {"tittel": "Råvaretyper", "felt": [("navn", "Navn"), ("lotkode", "Lotkode (2 siste siffer)")],
-                 "sortering": "navn"},
+    "raavarer": {"tittel": "Råvaretyper", "felt": [("navn", "Navn")], "sortering": "navn"},
+    "lotkoder": {"tittel": "Lotkoder", "felt": [("kode", "Kode (2 siste siffer)"), ("raavare_id", "Råvare"),
+                                                ("beskrivelse", "Beskrivelse")], "sortering": "kode"},
 }
 
 
@@ -484,6 +490,8 @@ def stamdata_admin(tabell):
             flash("Navn må fylles ut.", "feil")
         elif tabell == "operasjoner" and verdier[1] not in ("normal", "ut"):
             flash("Type må være «normal» eller «ut».", "feil")
+        elif tabell == "lotkoder" and not (verdier[0].isdigit() and len(verdier[0]) == 2):
+            flash("Lotkoden må være to siffer, f.eks. 01.", "feil")
         else:
             try:
                 if rad_id:
@@ -501,7 +509,8 @@ def stamdata_admin(tabell):
                 flash(f"Kunne ikke lagre: {e}", "feil")
         return redirect(url_for("app.stamdata_admin", tabell=tabell))
     rader = db.execute(f"SELECT * FROM {tabell} ORDER BY aktiv DESC, {oppsett['sortering']}").fetchall()
-    return render_template("stamdata.html", tabell=tabell, oppsett=oppsett, rader=rader, alle=STAMDATA)
+    return render_template("stamdata.html", tabell=tabell, oppsett=oppsett, rader=rader, alle=STAMDATA,
+                           raavarer=db.execute("SELECT * FROM raavarer ORDER BY navn").fetchall())
 
 
 @bp.route("/admin/brukere", methods=["GET", "POST"])

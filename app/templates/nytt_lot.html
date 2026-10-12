@@ -8,13 +8,13 @@
   <label>Prima lotnr (skann strekkoden)
     <input name="prima_lotnr" id="prima" data-skann value="{{ skjema.get('prima_lotnr', '') }}" autofocus autocomplete="off"></label>
   <div id="gs1" class="gs1 hjelp"></div>
-  <label>Råvare
-    <select name="raavare_id" id="raavare"><option value="">–</option>
-      {% for r in raavarer %}<option value="{{ r.id }}" {% if skjema.get('raavare_id')|string == r.id|string %}selected{% endif %}>{{ r.navn }}</option>{% endfor %}
+  <label>Råvare (lotkode)
+    <select name="lotkode" id="lotkode" required><option value="">–</option>
+      {% for k in lotkoder if k.raavare_id %}<option value="{{ k.kode }}" {% if skjema.get('lotkode') == k.kode %}selected{% endif %}>{{ k.kode }} – {{ k.raavare }}{% if k.beskrivelse %} ({{ k.beskrivelse }}){% endif %}</option>{% endfor %}
     </select></label>
   <label>Internt lotnr
     <input name="lotnr" id="lotnr" data-skann value="{{ skjema.get('lotnr', '') }}" required autocomplete="off" placeholder="f.eks. {{ forslag }}"></label>
-  <p class="hjelp">Forslag: <a href="#" id="bruk-forslag">{{ forslag }}</a> (ukedag, uke, år, løpenr – legg til typesifrene til slutt hvis de mangler)</p>
+  <p class="hjelp">Forslag: <a href="#" id="bruk-forslag">{{ forslag }}</a> (ukedag, uke, år, løpenr, lotkode)</p>
   <label>Produktspesifikasjon
     <select name="spesifikasjon_id" required><option value="">–</option>
       {% for s in spesifikasjoner %}<option value="{{ s.id }}" {% if skjema.get('spesifikasjon_id')|string == s.id|string %}selected{% endif %}>{{ s.navn }}</option>{% endfor %}
@@ -53,12 +53,15 @@
   prima.addEventListener('change', visGs1); visGs1();
   var lotnr = document.getElementById('lotnr'), forslag = document.getElementById('bruk-forslag');
   function hentForslag() {
-    var dato = document.querySelector('[name=dato]').value, rv = document.getElementById('raavare').value;
-    fetch('{{ url_for("app.api_lotnr_forslag") }}?dato=' + dato + '&raavare_id=' + rv)
-      .then(function (r) { return r.json(); }).then(function (d) { forslag.textContent = d.forslag; lotnr.placeholder = 'f.eks. ' + d.forslag; });
+    var dato = document.querySelector('[name=dato]').value, rv = document.getElementById('lotkode').value;
+    fetch('{{ url_for("app.api_lotnr_forslag") }}?dato=' + dato + '&lotkode=' + rv)
+      .then(function (r) { return r.json(); }).then(function (d) {
+        forslag.textContent = d.forslag; lotnr.placeholder = 'f.eks. ' + d.forslag;
+        if (d.forslag.length === 10 && !lotnr.value) lotnr.value = d.forslag;
+      });
   }
-  document.getElementById('raavare').addEventListener('change', hentForslag);
-  document.querySelector('[name=dato]').addEventListener('change', hentForslag);
+  document.getElementById('lotkode').addEventListener('change', function () { lotnr.value = ''; hentForslag(); });
+  document.querySelector('[name=dato]').addEventListener('change', function () { lotnr.value = ''; hentForslag(); });
   forslag.addEventListener('click', function (e) { e.preventDefault(); lotnr.value = forslag.textContent; lotnr.focus(); });
 </script>
 {% endblock %}

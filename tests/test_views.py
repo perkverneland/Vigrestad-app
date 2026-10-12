@@ -13,12 +13,13 @@ def test_hele_flyten(app):
     assert k.get("/").status_code == 302
     csrf = logg_inn(k)
     for side in ["/", "/lot/ny", "/operasjon", "/svinn", "/omlotting", "/beholdning", "/beholdning?vis=rester",
-                 "/lots", "/registreringer", "/admin/operasjoner", "/admin/produkter", "/admin/brukere"]:
+                 "/lots", "/registreringer", "/admin/operasjoner", "/admin/produkter", "/admin/lotkoder", "/admin/brukere"]:
         assert k.get(side).status_code == 200, side
 
     r = k.post("/lot/ny", data={"csrf": csrf, "dato": "2026-10-12", "lotnr": "0142260101",
                                 "prima_lotnr": "0197024032300620310203630011220819152408181022081904721",
-                                "spesifikasjon_id": "1", "produkt_id": "1", "start_kg": "363"}, follow_redirects=True)
+                                "spesifikasjon_id": "1", "produkt_id": "1", "start_kg": "363", "lotkode": "01"},
+               follow_redirects=True)
     assert "er registrert" in r.get_data(as_text=True)
     r = k.post("/lot/ny", data={"csrf": csrf, "dato": "2026-10-12", "lotnr": "0142260101", "prima_lotnr": "x",
                                 "spesifikasjon_id": "1", "produkt_id": "1", "start_kg": "363"}, follow_redirects=True)

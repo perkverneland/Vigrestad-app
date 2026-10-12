@@ -3,6 +3,7 @@
 {% block innhold %}
 {% include "_adminmeny.html" %}
 <h1>{{ oppsett.tittel }}</h1>
+{% if tabell == 'lotkoder' %}<p class="hjelp">De to siste sifrene i internt lotnr. Koden bestemmer råvaren til lotet. Flere koder kan høre til samme råvare.</p>{% endif %}
 {% if tabell == 'operasjoner' %}<p class="hjelp">Type «ut» betyr at varen forlater lageret (f.eks. Sold, Kassert). Rekkefølge styrer rekkefølgen i nedtrekkslistene.</p>{% endif %}
 <p class="hjelp">Ting som er i bruk kan ikke slettes – fjern krysset for «Aktiv» for å skjule dem i listene.</p>
 <table>
@@ -10,13 +11,17 @@
   <tbody>
   {% for r in rader %}{% set fid = 'r' ~ r.id %}
   <tr>
-    {% for f, t in oppsett.felt %}<td><input form="{{ fid }}" name="{{ f }}" value="{{ r[f] if r[f] is not none else '' }}"></td>{% endfor %}
+    {% for f, t in oppsett.felt %}<td>{% if f == 'raavare_id' %}<select form="{{ fid }}" name="{{ f }}"><option value="">(ikke avklart)</option>
+      {% for rv in raavarer %}<option value="{{ rv.id }}" {% if r[f] == rv.id %}selected{% endif %}>{{ rv.navn }}</option>{% endfor %}</select>
+      {% else %}<input form="{{ fid }}" name="{{ f }}" value="{{ r[f] if r[f] is not none else '' }}">{% endif %}</td>{% endfor %}
     <td><input form="{{ fid }}" type="checkbox" name="aktiv" value="1" {% if r.aktiv %}checked{% endif %}></td>
     <td><form id="{{ fid }}" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ r.id }}"><button>Lagre</button></form></td>
   </tr>
   {% endfor %}
   <tr class="ny">
-    {% for f, t in oppsett.felt %}<td><input form="ny" name="{{ f }}" placeholder="Ny: {{ t|lower }}" {% if f == 'type' %}value="normal"{% endif %}{% if f == 'rekkefolge' %}value="999"{% endif %}></td>{% endfor %}
+    {% for f, t in oppsett.felt %}<td>{% if f == 'raavare_id' %}<select form="ny" name="{{ f }}"><option value="">(ikke avklart)</option>
+      {% for rv in raavarer %}<option value="{{ rv.id }}">{{ rv.navn }}</option>{% endfor %}</select>
+      {% else %}<input form="ny" name="{{ f }}" placeholder="Ny: {{ t|lower }}" {% if f == 'type' %}value="normal"{% endif %}{% if f == 'rekkefolge' %}value="999"{% endif %}>{% endif %}</td>{% endfor %}
     <td>ja</td>
     <td><form id="ny" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="aktiv" value="1"><button>Legg til</button></form></td>
   </tr>

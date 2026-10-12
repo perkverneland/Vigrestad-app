@@ -126,3 +126,20 @@ def test_lotnr_forslag(db):
 def test_operasjon_finnes_uavhengig_av_skrivemate(db):
     assert lager.finn_operasjon(db, "maturing Started ")["navn"] == "Maturing started"
     assert lager.finn_operasjon(db, "i salt")["navn"] == "In salt"
+
+
+def test_lotkode_bestemmer_raavare(db):
+    lid = nytt(db, "0106230102")
+    raavare = db.execute("SELECT r.navn FROM lots l JOIN raavarer r ON r.id = l.raavare_id WHERE l.id = ?",
+                         (lid,)).fetchone()[0]
+    assert raavare == "Bog"
+
+
+def test_ukjent_lotkode_og_feil_format_avvises(db):
+    with pytest.raises(Feil, match="ukjent"):
+        nytt(db, "0106230188")
+    with pytest.raises(Feil, match="10 siffer"):
+        nytt(db, "010623")
+    with pytest.raises(Feil, match="slutte på 01"):
+        lager.opprett_lot(db, lotnr="0106230103", prima_lotnr="x", spesifikasjon_id=1, produkt_id=1,
+                          start_kg=100, valgt_lotkode="01")

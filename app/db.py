@@ -22,6 +22,19 @@ OPERASJON_ALIAS = {"i salt": "In salt"}
 SPESIFIKASJONER = ["Premium", "Norsk", "Cats", "Standard", "Jæren smak",
                    "Lam side m/bein", "FjellLam", "Bog u/nitritt", "ASK"]
 RAAVARER = ["Pinnekjøtt", "Lammelår", "Bryst/nakke", "Bog", "Forpart", "Avkapp"]
+# Lotkoder (2 siste siffer i internt lotnr) funnet i de gamle dataene. Råvaren er utledet av hvilke
+# ferdigprodukter lotene ble til; None = ikke avklart ennå (fylles inn under Admin → Lotkoder).
+LOTKODER = [
+    ("01", "Pinnekjøtt", None), ("11", "Pinnekjøtt", None), ("21", "Pinnekjøtt", None),
+    ("31", "Pinnekjøtt", None), ("02", "Bog", None), ("32", "Bog", None),
+    ("03", "Lammelår", None), ("13", "Lammelår", None),
+    ("04", None, "Ikke avklart (brukt til bl.a. pinnekjøtt uten nitritt, Folkets Gryteklar)"),
+    ("05", None, "Ikke avklart (brukt til Folkets Gryteklar)"),
+    ("06", None, "Ikke avklart"),
+    ("34", None, "Ikke avklart (brukt til pinnekjøtt uten nitritt)"),
+    ("99", None, "Ikke avklart (brukt til Pinnesteik)"),
+    ("07", None, "Omlotting"),
+]
 PRODUKTER = [
     ("Røkt pinnekjøtt", "14327"), ("Tørket pinnekjøtt", "14320"), ("Unil fenalår", "1171"),
     ("Folkets Gryteklar", "1173"), ("First Price", "1172"), ("Saltet pinnekjøtt", "14000"),
@@ -74,6 +87,9 @@ def opprett_tabeller(db, admin_passord="admin"):
                    "SELECT ?, id FROM operasjoner WHERE navn = ?", (alias, navn))
     db.executemany("INSERT INTO spesifikasjoner (navn) VALUES (?)", [(s,) for s in SPESIFIKASJONER])
     db.executemany("INSERT INTO raavarer (navn) VALUES (?)", [(r,) for r in RAAVARER])
+    for kode, raavare, beskrivelse in LOTKODER:
+        db.execute("INSERT INTO lotkoder (kode, raavare_id, beskrivelse) "
+                   "VALUES (?, (SELECT id FROM raavarer WHERE navn = ?), ?)", (kode, raavare, beskrivelse))
     db.executemany("INSERT INTO produkter (navn, varenr) VALUES (?, ?)", PRODUKTER)
     db.execute(
         "INSERT INTO brukere (brukernavn, navn, passord_hash, rolle) VALUES (?, ?, ?, 'admin')",

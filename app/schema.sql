@@ -34,10 +34,18 @@ CREATE TABLE spesifikasjoner (
 );
 
 CREATE TABLE raavarer (
-    id       INTEGER PRIMARY KEY,
-    navn     TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    lotkode  TEXT,              -- de to siste sifrene i internt lotnr, hvis det er fast per råvare
-    aktiv    INTEGER NOT NULL DEFAULT 1
+    id     INTEGER PRIMARY KEY,
+    navn   TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    aktiv  INTEGER NOT NULL DEFAULT 1
+);
+
+-- De to siste sifrene i internt lotnr. Koden bestemmer råvaren (flere koder kan gi samme råvare).
+CREATE TABLE lotkoder (
+    id           INTEGER PRIMARY KEY,
+    kode         TEXT NOT NULL UNIQUE,
+    raavare_id   INTEGER REFERENCES raavarer(id),
+    beskrivelse  TEXT,
+    aktiv        INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE produkter (

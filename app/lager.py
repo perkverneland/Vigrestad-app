@@ -88,10 +88,10 @@ def _posisjon(db, posisjon_id):
 
 # ---------------------------------------------------------------- registrering
 
-def foresla_lotnr(db, dato=None, typekode=""):
-    """Internt lotnr ser ut til å være: ukedag(2) + uke(2) + år(2) + løpenr(2) + type(2).
+def foresla_lotnr(db, dato=None, kode=""):
+    """Internt lotnr er: ukedag(2) + uke(2) + år(2) + løpenr(2) + lotkode(2). Lotkoden bestemmer råvaren.
 
-    F.eks. 0106230103 = mandag (01), uke 06, 2023, løpenr 01, type 03.
+    F.eks. 0106230103 = mandag (01), uke 06, 2023, løpenr 01, lotkode 03.
     """
     d = date.fromisoformat(_dato(dato))
     aar, uke, ukedag = d.isocalendar()
@@ -99,12 +99,20 @@ def foresla_lotnr(db, dato=None, typekode=""):
     rader = db.execute("SELECT lotnr FROM lots WHERE lotnr LIKE ?", (prefiks + "%",)).fetchall()
     lopenr = [int(r["lotnr"][6:8]) for r in rader if r["lotnr"][6:8].isdigit()]
     neste = max(lopenr, default=0) + 1
-    return f"{prefiks}{neste:02d}{typekode or ''}"
+    return f"{prefiks}{neste:02d}{kode or ''}"
+
+
+def lotkode(db, lotnr):
+    """Lotkoden (2 siste siffer) med tilhørende råvare, eller None hvis koden ikke er kjent."""
+    if not lotnr or len(lotnr.strip()) < 2:
+        return None
+    return db.execute("SELECT k.*, r.navn AS raavare FROM lotkoder k LEFT JOIN raavarer r ON r.id = k.raavare_id "
+                      "WHERE k.kode = ?", (lotnr.strip()[-2:],)).fetchone()
 
 
 def opprett_lot(db, *, lotnr, dato=None, prima_lotnr=None, spesifikasjon_id=None, produkt_id=None,
                 raavare_id=None, start_kg=None, start_stk=None, kommentar=None, bruker_id=None,
-                mangler_mottak=False, kilde="app", krev_felt=True):
+                mangler_mottak=False, kilde="app", krev_felt=True, valgt_lotkode=None):
     lotnr = (lotnr or "").strip()
     if not lotnr:
         raise Feil("Internt lotnr må fylles ut.")
@@ -112,6 +120,20 @@ def opprett_lot(db, *, lotnr, dato=None, prima_lotnr=None, spesifikasjon_id=None
         raise Feil("Internt lotnr kan ikke inneholde mellomrom.")
     if finn_lot(db, lotnr):
         raise Feil(f"Lotnummer «{lotnr}» er allerede registrert. Et lot kan bare registreres én gang.")
+    if valgt_lotkode and not lotnr.endswith(valgt_lotkode):
+        raise Feil(f"Lotnummeret må slutte på {valgt_lotkode} (valgt lotkode/råvare).")
+    kode = lotkode(db, lotnr)
+    if krev_felt:
+        if len(lotnr) != 10 or not lotnr.isdigit():
+            raise Feil("Internt lotnr skal være 10 siffer (ukedag, uke, år, løpenr, lotkode).")
+        if kode is None or not kode["aktiv"]:
+            raise Feil(f"Lotkoden «{lotnr[-2:]}» (de to siste sifrene) er ukjent. Admin kan legge den til "
+                       "under Admin → Lotkoder.")
+    if kode is not None and kode["raavare_id"]:
+        # Råvaren bestemmes av lotkoden
+        if krev_felt and raavare_id and int(raavare_id) != kode["raavare_id"]:
+            raise Feil(f"Lotkode {kode['kode']} hører til råvaren {kode['raavare']}, ikke valgt råvare.")
+        raavare_id = kode["raavare_id"]
     dato = _dato(dato)
     start_kg = _tall(start_kg, "Startvekt (kg)")
     start_stk = _tall(start_stk, "Antall stk", heltall=True)
