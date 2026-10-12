@@ -45,3 +45,16 @@ def test_post_uten_csrf_avvises(app):
     k = app.test_client()
     logg_inn(k)
     assert k.post("/lot/ny", data={"lotnr": "1"}).status_code == 400
+
+
+def test_lotkode_koblet_til_raavare_oppdaterer_gamle_lot(app):
+    from app.db import koble_til
+    from app import lager
+    db = koble_til(app.config["DATABASE"])
+    lager.opprett_lot(db, lotnr="0106230199", krev_felt=False)
+    db.commit()
+    k = app.test_client()
+    csrf = logg_inn(k)
+    kode = db.execute("SELECT id FROM lotkoder WHERE kode = '99'").fetchone()[0]
+    k.post("/admin/lotkoder", data={"csrf": csrf, "id": kode, "kode": "99", "raavare_id": "1", "aktiv": "1"})
+    assert db.execute("SELECT raavare_id FROM lots WHERE lotnr = '0106230199'").fetchone()[0] == 1

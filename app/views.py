@@ -502,6 +502,10 @@ def stamdata_admin(tabell):
                         if tabell == "operasjoner" else ([], [])
                     db.execute(f"INSERT INTO {tabell} ({', '.join(felt)}{''.join(ekstra_kol)}) "
                                f"VALUES ({', '.join('?' * (len(felt) + len(ekstra_verdi)))})", (*verdier, *ekstra_verdi))
+                if tabell == "lotkoder" and verdier[1]:
+                    # Lot med denne koden som ennå mangler råvare, får den nå
+                    db.execute("UPDATE lots SET raavare_id = ? WHERE substr(lotnr, -2) = ? AND raavare_id IS NULL",
+                               (verdier[1], verdier[0]))
                 db.commit()
                 flash("Lagret.", "ok")
             except Exception as e:  # typisk: navnet finnes fra før

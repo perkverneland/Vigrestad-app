@@ -51,7 +51,7 @@ Hver gang appen startes, lagres en kopi av databasen i mappen `backup` (én per 
 
 | I Excel | I appen | Hva den gjør |
 |---|---|---|
-| Input 1 | **Nytt lot** | Mottak: Prima lotnr (skann), internt lotnr, spesifikasjon, ferdigprodukt, startvekt (blir «Label kg»). Stopper hvis lotnummeret finnes fra før. |
+| Input 1 | **Nytt lot** | Mottak: Prima lotnr (skann), råvare/lotkode, internt lotnr (fylles ut automatisk), spesifikasjon, ferdigprodukt, startvekt (blir «Label kg»). Stopper hvis lotnummeret finnes fra før. |
 | Input 2 | **Operasjon** | Skann lot → velg operasjon → kg. Viser historikk og utbytte. Stopper hvis lotet ikke finnes. |
 | Input 3 | **Svinn** | Trekker svinn fra beholdningen i steget lotet ligger i. |
 | Input 4 | **Omlotting** | Flytter kg fra ett lot til et annet og registrerer neste operasjon på til-lotet. |
@@ -81,10 +81,13 @@ Dataene viser at lotnummeret (f.eks. `0106230103`) er bygget slik:
 
 | 01 | 06 | 23 | 01 | 03 |
 |---|---|---|---|---|
-| ukedag (mandag = 01) | ukenummer | år | løpenummer den dagen | type |
+| ukedag (mandag = 01) | ukenummer | år | løpenummer den dagen | lotkode (råvare) |
 
-Appen foreslår de første åtte sifrene. Hvis typesifrene alltid følger råvaren, kan du legge
-dem inn under *Admin → Råvaretyper → Lotkode*, så blir forslaget komplett.
+De to siste sifrene er **lotkoden**, og den bestemmer råvaren (flere koder kan høre til samme
+råvare, f.eks. 01, 11, 21 og 31 = pinnekjøtt). I «Nytt lot» velger du råvare/lotkode, og appen
+fyller ut hele lotnummeret med neste ledige løpenummer for dagen. Lotkoder som ikke er avklart
+ennå, kobles til riktig råvare under *Admin → Lotkoder* – da får også gamle lot med den koden
+riktig råvare.
 
 ## For den som skal videreutvikle
 ```
