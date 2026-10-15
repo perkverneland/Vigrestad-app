@@ -6,12 +6,15 @@ if "%~1"=="" (
   pause
   exit /b
 )
-if not exist .venv (
-  py -m venv .venv 2>nul || python -m venv .venv
+echo Sjekker at det appen trenger er installert ...
+py -m pip install --user --disable-pip-version-check -q -r requirements.txt
+if errorlevel 1 (
+  echo.
+  echo FEIL: Klarte ikke installere det appen trenger. Ta bilde av dette vinduet og send det.
+  pause
+  exit /b 1
 )
-call .venv\Scripts\activate.bat
-pip install -q -r requirements.txt
-flask --app app importer-excel "%~1"
+py -m flask --app app importer-excel "%~1"
 echo.
 echo Se importrapport.txt for liste over feil i de gamle dataene.
 pause
