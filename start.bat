@@ -2,7 +2,7 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 echo Sjekker at det appen trenger er installert ...
-py -m pip install --user --disable-pip-version-check -q -r requirements.txt
+py -m pip install --user --disable-pip-version-check --no-warn-script-location -q -r requirements.txt
 if errorlevel 1 (
   echo.
   echo FEIL: Klarte ikke installere det appen trenger. Ta bilde av dette vinduet og send det.
